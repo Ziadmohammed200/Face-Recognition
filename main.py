@@ -1,29 +1,18 @@
 from PyQt5.QtWidgets import QApplication, QFileDialog
 from GUI import ImageKNNClassifier
-import math
 from sklearn.preprocessing import label_binarize
-
-import cv2
 from PyQt5.QtGui import QImage, QPixmap
 from sklearn.neighbors import KNeighborsClassifier
-from ROC_UI import ROCGraphWindow
-from PyQt5.QtWidgets import QLabel
-import numpy as np
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QLabel, QFrame
+from PyQt5.QtCore import Qt, QSize
 from eigen_face import generate_dataset, generate_covariance_matrix, get_lambdas_and_eigenvectors, get_k_vectors
 from eigen_face import get_a_coefficients_dataset, get_a_coefficients_image , k_nearest_neighbour
-import matplotlib.pyplot as plt
 import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve
-import numpy as np
-import cv2
 import math
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import Qt
 from sklearn.decomposition import PCA
 
 
@@ -100,49 +89,82 @@ def apply_knn_classification(window):
         # 4. Get results
         predicted_label, neighbors, distances = k_nearest_neighbour(a_coeffs, test_coeffs, labels, k_value)
         
-        # Collect detected images
-        detected_images = [images[neighbors[i]] for i in range(k_value)]  # Get the top k images
-        
-        # Get the test image dimensions
-        test_h, test_w = window.test_image.shape[:2]
+        # Clear existing KNN display in the grid
+        window.clear_knn_display()
 
-        # Resize detected images to test image size
-        resized_images = [cv2.resize(images[neighbors[i]], (test_w, test_h)) for i in range(k_value)]
-
-        # Calculate square grid layout
-        grid_cols = math.ceil(math.sqrt(k_value))
+        # Determine grid layout (e.g., as square as possible)
+        grid_cols = max(1, math.ceil(math.sqrt(k_value))) # Ensure at least 1 column
         grid_rows = math.ceil(k_value / grid_cols)
 
-        # Pad with black images if necessary
-        while len(resized_images) < grid_rows * grid_cols:
-            black_img = np.zeros_like(resized_images[0])
-            resized_images.append(black_img)
+        # Define a fixed size for each neighbor image display for consistency
+        # You can adjust this size as needed to fit your layout
+        neighbor_display_size = QSize(150, 150) # Width, Height for each neighbor image label
 
-        # Build rows
-        grid_rows_images = []
-        for r in range(grid_rows):
-            row_images = resized_images[r * grid_cols:(r + 1) * grid_cols]
-            row_combined = np.hstack(row_images)
-            grid_rows_images.append(row_combined)
+        for i in range(k_value):
+            neighbor_index = neighbors[i]
+            neighbor_image_data = images[neighbor_index] # Get the actual image data
+            neighbor_label_text = f"Neighbor {i+1}\nClass: {labels[neighbor_index]}\nDist: {distances[i]:.2f}"
 
-        # Stack rows to form final grid image
-        combined_image = np.vstack(grid_rows_images)
+            # Convert image data to QPixmap
+            # Ensure the image is in a format that can be displayed by QImage
+            if len(neighbor_image_data.shape) == 2: # Grayscale
+                q_img = QImage(neighbor_image_data.data, neighbor_image_data.shape[1], neighbor_image_data.shape[0],
+                               neighbor_image_data.shape[1], QImage.Format_Grayscale8)
+            else: # Assuming BGR if 3 channels (from OpenCV)
+                # Convert BGR to RGB for QImage
+                rgb_image = cv2.cvtColor(neighbor_image_data, cv2.COLOR_BGR2RGB)
+                q_img = QImage(rgb_image.data, rgb_image.shape[1], rgb_image.shape[0],
+                               rgb_image.shape[1] * rgb_image.shape[2], QImage.Format_RGB888)
 
-        # Convert to RGB for display
-        if len(combined_image.shape) == 2:
-            combined_image_rgb = cv2.cvtColor(combined_image, cv2.COLOR_GRAY2RGB)
-        else:
-            combined_image_rgb = cv2.cvtColor(combined_image, cv2.COLOR_BGR2RGB)
+            pixmap = QPixmap.fromImage(q_img)
+            # Scale pixmap to fit the label's fixed size
+            scaled_pixmap = pixmap.scaled(
+                neighbor_display_size,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
 
-        # Convert to QImage and QPixmap
-        h, w, ch = combined_image_rgb.shape
-        bytes_per_line = ch * w
-        q_combined_img = QImage(combined_image_rgb.data, w, h, bytes_per_line, QImage.Format_RGB888)
-        pixmap_combined = QPixmap.fromImage(q_combined_img)
-        window.result_info_label.setPixmap(pixmap_combined)
-        window.result_info_label.setAlignment(Qt.AlignCenter)
-        
-        print(f"Detected images displayed in knn_widget.")
+            # Create a QLabel for the image
+            image_label = QLabel()
+            image_label.setPixmap(scaled_pixmap)
+            image_label.setAlignment(Qt.AlignCenter)
+            image_label.setFixedSize(neighbor_display_size) # Set fixed size for consistent layout
+
+            # Apply styling similar to test_image_label
+            image_label.setFrameShape(QFrame.StyledPanel)
+            image_label.setStyleSheet("""
+                background-color: white;
+                border-radius: 10px;
+                padding: 5px; /* Adjust padding for smaller labels */
+                border: 2px dashed #bdc3c7;
+            """)
+
+            # Create a QLabel for the text info
+            info_label = QLabel(neighbor_label_text)
+            info_label.setAlignment(Qt.AlignCenter)
+            info_label.setWordWrap(True) # Allow text to wrap if too long
+            info_label.setFont(window.font()) # Inherit font from main window for consistency
+
+            # Calculate row and column for the grid layout
+            row = i // grid_cols
+            col = i % grid_cols
+
+            # Create a vertical layout for each image and its info
+            item_layout = QVBoxLayout()
+            item_layout.addWidget(image_label)
+            item_layout.addWidget(info_label)
+            item_layout.setAlignment(Qt.AlignCenter) # Center the content within the item layout
+
+            # Create a QWidget to hold the item_layout for consistent spacing in the grid
+            item_widget = QWidget()
+            item_widget.setLayout(item_layout)
+
+            # Add the widget to the grid layout
+            window.knn_grid.addWidget(item_widget, row, col)
+
+        print(f"Displayed {k_value} K-Nearest Neighbors in grid.")
+
+        # --- END OF MODIFICATIONS FOR KNN DISPLAY ---
 
     except Exception as e:
         print(f"Classification failed: {str(e)}")
@@ -260,20 +282,13 @@ if __name__ == "__main__":
     app = QApplication([])
     window = ImageKNNClassifier()
 
-    # Create a layout for the window to hold the widgets
-    layout = QVBoxLayout()
     
-    # Add the knn_widget where the results will be displayed
-    window.knn_widget = QLabel("KNN Results")
-    layout.addWidget(window.knn_widget)
 
     # Add other widgets such as dataset_button, test_image_button, etc.
     window.dataset_button.clicked.connect(lambda: handle_dataset_selection(window))
     window.apply_button.clicked.connect(lambda: apply_knn_classification(window))
     window.test_image_button.clicked.connect(lambda: handle_test_image_selection(window))
     window.roc_button.clicked.connect(lambda: show_roc_curve(window))
-    
-    window.setLayout(layout)  # Set the layout of the window
-    
+        
     window.show()
     app.exec_()

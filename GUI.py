@@ -242,33 +242,13 @@ class ImageKNNClassifier(QMainWindow):
         self.test_info_label.setAlignment(Qt.AlignCenter)
         test_layout.addWidget(self.test_info_label)
 
-
-        self.result_image_label = QLabel()
-        self.result_image_label.setAlignment(Qt.AlignCenter)
-        self.result_image_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.result_image_label.setMinimumSize(350, 350)
-        self.result_image_label.setFrameShape(QFrame.StyledPanel)
-        self.result_image_label.setStyleSheet("""
-            background-color: white;
-            border-radius: 10px;
-            padding: 10px;
-            border: 2px dashed #bdc3c7;
-        """)
-        # K-nearest neighbors display
         knn_group = QGroupBox("K Nearest Neighbors")
         knn_layout = QVBoxLayout(knn_group)
+        knn_layout.setContentsMargins(0, 0, 0, 0)  # Remove internal margins
+
         display_layout.addWidget(test_group)
-
-
-        self.result_info_label = QLabel("result will appear here")
-        self.result_info_label.setAlignment(Qt.AlignCenter)
-        knn_layout.addWidget(self.result_info_label)
-
-
-       
-
-
-        
+        knn_group.setLayout(knn_layout)
+      
 
         # Scroll area for KNN images
         self.knn_scroll = QScrollArea()
@@ -281,14 +261,7 @@ class ImageKNNClassifier(QMainWindow):
 
         self.knn_scroll.setWidget(self.knn_widget)
         knn_layout.addWidget(self.knn_scroll)
-        self.knn_images_result = QLabel("No neighbors displayed")
-        self.knn_images_result.setMinimumSize(350, 350)
-        self.knn_images_result.setAlignment(Qt.AlignCenter)
-        self.knn_images_result.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
-        self.knn_images_result.setFont(QFont("Segoe UI", 10))
-        self.knn_images_result.setStyleSheet("color: #2c3e50; margin-top: 10px;")
-        knn_layout.addWidget(self.knn_images_result)
+        
 
         display_layout.addWidget(knn_group)
         main_layout.addLayout(display_layout, 1)
