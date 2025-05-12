@@ -242,7 +242,7 @@ class ImageKNNClassifier(QMainWindow):
         self.knn_images_result.setAlignment(Qt.AlignCenter)
         self.knn_images_result.setFont(QFont("Segoe UI", 10))
         self.knn_images_result.setStyleSheet("color: #2c3e50; margin-top: 10px;")
-        knn_layout.addWidget(self.knn_info_label)
+        knn_layout.addWidget(self.knn_images_result)
 
         display_layout.addWidget(knn_group)
         main_layout.addLayout(display_layout, 1)
