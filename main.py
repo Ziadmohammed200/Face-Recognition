@@ -97,8 +97,8 @@ def apply_knn_classification(window):
         
         # Convert to QPixmap and display in knn_widget
         pixmap_combined = QPixmap.fromImage(q_combined_img)
-        window.knn_widget.setPixmap(pixmap_combined)
-        window.knn_widget.setAlignment(Qt.AlignCenter)
+        window.result_info_label.setPixmap(pixmap_combined)
+        window.result_info_label.setAlignment(Qt.AlignCenter)
         
         print(f"Detected images displayed in knn_widget.")
 

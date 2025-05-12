@@ -214,19 +214,39 @@ class ImageKNNClassifier(QMainWindow):
             padding: 10px;
             border: 2px dashed #bdc3c7;
         """)
-
         test_layout.addWidget(self.test_image_label)
-
-        # Image information label
+         # Image information label
         self.test_info_label = QLabel("No image loaded")
         self.test_info_label.setAlignment(Qt.AlignCenter)
         test_layout.addWidget(self.test_info_label)
 
-        display_layout.addWidget(test_group)
 
+        self.result_image_label = QLabel()
+        self.result_image_label.setAlignment(Qt.AlignCenter)
+        self.result_image_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.result_image_label.setMinimumSize(350, 350)
+        self.result_image_label.setFrameShape(QFrame.StyledPanel)
+        self.result_image_label.setStyleSheet("""
+            background-color: white;
+            border-radius: 10px;
+            padding: 10px;
+            border: 2px dashed #bdc3c7;
+        """)
         # K-nearest neighbors display
         knn_group = QGroupBox("K Nearest Neighbors")
         knn_layout = QVBoxLayout(knn_group)
+        display_layout.addWidget(test_group)
+
+
+        self.result_info_label = QLabel("result will appear here")
+        self.result_info_label.setAlignment(Qt.AlignCenter)
+        knn_layout.addWidget(self.result_info_label)
+
+
+       
+
+
+        
 
         # Scroll area for KNN images
         self.knn_scroll = QScrollArea()
