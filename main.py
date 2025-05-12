@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QFileDialog
 from GUI import ImageKNNClassifier
+import math
 import cv2
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QLabel
@@ -86,21 +87,48 @@ def apply_knn_classification(window):
         # Collect detected images
         detected_images = [images[neighbors[i]] for i in range(k_value)]  # Get the top k images
         
-        # Combine images into one image (e.g., horizontally)
-        combined_image = np.hstack(detected_images)  # You can use vstack for vertical combination if preferred
-        
-        # Convert combined image to QImage for display
-        combined_image_rgb = cv2.cvtColor(combined_image, cv2.COLOR_BGR2RGB)  # Ensure color format for QImage
+        # Get the test image dimensions
+        test_h, test_w = window.test_image.shape[:2]
+
+        # Resize detected images to test image size
+        resized_images = [cv2.resize(images[neighbors[i]], (test_w, test_h)) for i in range(k_value)]
+
+        # Calculate square grid layout
+        grid_cols = math.ceil(math.sqrt(k_value))
+        grid_rows = math.ceil(k_value / grid_cols)
+
+        # Pad with black images if necessary
+        while len(resized_images) < grid_rows * grid_cols:
+            black_img = np.zeros_like(resized_images[0])
+            resized_images.append(black_img)
+
+        # Build rows
+        grid_rows_images = []
+        for r in range(grid_rows):
+            row_images = resized_images[r * grid_cols:(r + 1) * grid_cols]
+            row_combined = np.hstack(row_images)
+            grid_rows_images.append(row_combined)
+
+        # Stack rows to form final grid image
+        combined_image = np.vstack(grid_rows_images)
+
+        # Convert to RGB for display
+        if len(combined_image.shape) == 2:
+            combined_image_rgb = cv2.cvtColor(combined_image, cv2.COLOR_GRAY2RGB)
+        else:
+            combined_image_rgb = cv2.cvtColor(combined_image, cv2.COLOR_BGR2RGB)
+
+        # Convert to QImage and QPixmap
         h, w, ch = combined_image_rgb.shape
         bytes_per_line = ch * w
         q_combined_img = QImage(combined_image_rgb.data, w, h, bytes_per_line, QImage.Format_RGB888)
-        
-        # Convert to QPixmap and display in knn_widget
         pixmap_combined = QPixmap.fromImage(q_combined_img)
+
+        # Display in QLabel
         window.knn_images_result.setPixmap(pixmap_combined)
         window.knn_images_result.setAlignment(Qt.AlignCenter)
-        
-        print(f"Detected images displayed in knn_widget.")
+
+        print("Detected images displayed in knn_widget.")
 
     except Exception as e:
         print(f"Classification failed: {str(e)}")
