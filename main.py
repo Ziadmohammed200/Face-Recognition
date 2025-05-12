@@ -70,7 +70,12 @@ def apply_knn_classification(window):
     
     # Get k eigenvectors based on threshold
     k_eigenvectors = get_k_vectors(eigen_values, eigenvectors)
-    grayscale_image = cv2.cvtColor(window.test_image, cv2.COLOR_BGR2GRAY)
+    if len(window.test_image.shape) == 3:
+        # It's a color image
+        grayscale_image = cv2.cvtColor(window.test_image, cv2.COLOR_BGR2GRAY)
+    else:
+        # Already grayscale
+        grayscale_image = window.test_image
 
     # Get coefficients for dataset and test image
     a_coefficients_dataset = get_a_coefficients_dataset(k_eigenvectors, images_mean, images)
