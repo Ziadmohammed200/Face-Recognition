@@ -1,8 +1,12 @@
 from PyQt5.QtWidgets import QApplication, QFileDialog
 from GUI import ImageKNNClassifier
 import math
+from sklearn.preprocessing import label_binarize
+
 import cv2
 from PyQt5.QtGui import QImage, QPixmap
+from sklearn.neighbors import KNeighborsClassifier
+from ROC_UI import ROCGraphWindow
 from PyQt5.QtWidgets import QLabel
 import numpy as np
 from PyQt5.QtGui import QImage, QPixmap
@@ -10,6 +14,18 @@ from PyQt5.QtCore import Qt
 from eigen_face import generate_dataset, generate_covariance_matrix, get_lambdas_and_eigenvectors, get_k_vectors
 from eigen_face import get_a_coefficients_dataset, get_a_coefficients_image , k_nearest_neighbour
 import matplotlib.pyplot as plt
+import os
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve
+import numpy as np
+import cv2
+import math
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtCore import Qt
+from sklearn.decomposition import PCA
+
 
 from PyQt5.QtWidgets import QApplication, QFileDialog, QVBoxLayout, QLabel, QWidget
 from PyQt5.QtGui import QImage, QPixmap
@@ -132,6 +148,101 @@ def apply_knn_classification(window):
 
     except Exception as e:
         print(f"Classification failed: {str(e)}")
+#####################################################################################################################
+def load_faces_from_directory(dataset_path):
+    """
+    Loads face images from the dataset directory and returns the images and labels.
+    
+    dataset_path: str
+        Path to the dataset directory containing subdirectories with images for each person.
+    
+    Returns:
+    - faces: numpy array of shape (n_samples, n_features), where n_samples is the number of images and n_features is the flattened image size.
+    - labels: numpy array of shape (n_samples,), where each entry is the label for the corresponding image.
+    """
+    faces = []
+    labels = []
+    label_map = {}  # This map will store the name or ID of each person
+
+    # Walk through the dataset directory
+    label = 0
+    for person_name in os.listdir(dataset_path):
+        person_dir = os.path.join(dataset_path, person_name)
+
+        # Only process directories
+        if os.path.isdir(person_dir):
+            for image_name in os.listdir(person_dir):
+                image_path = os.path.join(person_dir, image_name)
+
+                # Read the image
+                image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)  # Read as grayscale
+                if image is None:
+                    continue  # Skip if the image is invalid
+
+                # Resize to a fixed size (e.g., 64x64)
+                image_resized = cv2.resize(image, (64, 64))
+
+                # Flatten the image and append it to faces list
+                faces.append(image_resized.flatten())  # Flatten the 2D image to 1D
+
+                # Append the label for this image
+                labels.append(label)
+
+            # Increment the label for the next person
+            label_map[label] = person_name
+            label += 1
+
+    # Convert faces and labels to numpy arrays
+    faces = np.array(faces)
+    labels = np.array(labels)
+
+    return faces, labels
+
+
+def apply_pca(faces):
+    pca = PCA(n_components=50)
+    pca_faces = pca.fit_transform(faces)
+    return pca, pca_faces
+
+def show_roc_curve(self):
+    # Validate dataset path
+    if not hasattr(self, 'dataset_path') or not self.dataset_path:
+        print("Error: No dataset selected!")
+        return
+
+    # Load the face dataset
+    faces, labels = load_faces_from_directory(self.dataset_path)
+
+    # Apply PCA to the faces for dimensionality reduction
+    pca, pca_faces = apply_pca(faces)
+
+    # For this example, we are using a KNN classifier to generate predicted labels
+    k_value = 3  # Or get from GUI, e.g., self.k_spinbox.value()
+    knn = KNeighborsClassifier(n_neighbors=k_value)
+    knn.fit(pca_faces, labels)
+
+    # Predict labels using the KNN classifier
+    predicted_labels = knn.predict(pca_faces)
+
+    # Binarize the labels (one-vs-rest approach for multiclass)
+    binary_labels = label_binarize(labels, classes=np.unique(labels))
+
+    # Predict the probabilities for each class (for ROC)
+    predicted_probs = knn.predict_proba(pca_faces)
+
+    # Calculate ROC curve for each class
+    fpr = {}
+    tpr = {}
+    thresholds = {}
+    for i in range(binary_labels.shape[1]):
+        fpr[i], tpr[i], thresholds[i] = roc_curve(binary_labels[:, i], predicted_probs[:, i])
+
+    # Create and show ROCGraphWindow for each class
+    for i in range(binary_labels.shape[1]):
+        # Initialize the ROC window and pass fpr and tpr for the current class
+        roc_window = ROCGraphWindow(fpr[i], tpr[i])
+        roc_window.show()
+
 
 if __name__ == "__main__":
     app = QApplication([])
@@ -148,6 +259,7 @@ if __name__ == "__main__":
     window.dataset_button.clicked.connect(lambda: handle_dataset_selection(window))
     window.apply_button.clicked.connect(lambda: apply_knn_classification(window))
     window.test_image_button.clicked.connect(lambda: handle_test_image_selection(window))
+    window.roc_button.clicked.connect(lambda: show_roc_curve(window))
     
     window.setLayout(layout)  # Set the layout of the window
     
