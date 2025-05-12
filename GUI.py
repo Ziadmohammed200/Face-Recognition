@@ -172,12 +172,28 @@ class ImageKNNClassifier(QMainWindow):
         main_layout.addWidget(controls_group)
 
         # Status label
-        self.status_label = QLabel("Ready. Please upload a dataset of images.")
-        self.status_label.setFont(QFont("Arial", 10))
-        self.status_label.setAlignment(Qt.AlignCenter)
-        self.status_label.setStyleSheet(
-            "color: #27ae60; font-weight: bold; padding: 5px; background-color: #e8f8f5; border-radius: 4px;")
-        main_layout.addWidget(self.status_label)
+        # Replace the status label with an "Apply" button
+        self.apply_button = QPushButton("Apply")
+        self.apply_button.setFont(QFont("Arial", 10))
+        self.apply_button.setStyleSheet(
+            """
+            QPushButton {
+                color: #ffffff;
+                font-weight: bold;
+                padding: 10px;
+                background-color: #27ae60;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #1e8449;
+            }
+            QPushButton:pressed {
+                background-color: #145a32;
+            }
+            """
+        )
+        self.apply_button.setMinimumHeight(40)
+        main_layout.addWidget(self.apply_button)
 
         # Create display area
         display_layout = QHBoxLayout()

@@ -3,8 +3,8 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-main_folder = 'D:\CV\\faces'
-test_image = cv2.imread("C:\\Users\DELL\Downloads\Telegram Desktop\WhatsApp Image 2025-05-09 at 8.34.31 PM.jpeg",cv2.IMREAD_GRAYSCALE)
+# main_folder = 'D:\CV\\faces'
+# test_image = cv2.imread("C:\\Users\DELL\Downloads\Telegram Desktop\WhatsApp Image 2025-05-09 at 8.34.31 PM.jpeg",cv2.IMREAD_GRAYSCALE)
 
 images = []
 labels = []
@@ -128,27 +128,27 @@ def plot_nearest_neighbors(test_image, images, labels, neighbor_indices, predict
 
 
 
-images,labels = generate_dataset(main_folder)
-covarianceMatrix,center, mean = generate_covariance_matrix(images)
-l,v=get_lambdas_and_eigenvectors(covarianceMatrix,center)
-k,v_k = get_k_vectors(l,v,0.95)
-a = get_a_coefficients_dataset(v_k,images,mean)
-test_a = get_a_coefficients_image(v_k, test_image, mean)
+# images,labels = generate_dataset(main_folder)
+# covarianceMatrix,center, mean = generate_covariance_matrix(images)
+# l,v=get_lambdas_and_eigenvectors(covarianceMatrix,center)
+# k,v_k = get_k_vectors(l,v,0.95)
+# a = get_a_coefficients_dataset(v_k,images,mean)
+# test_a = get_a_coefficients_image(v_k, test_image, mean)
 
-predicted_label, neighbor_indices, distances = k_nearest_neighbour(a, test_a, labels, k=5)
-images_detected = images[neighbor_indices[4]]
+# predicted_label, neighbor_indices, distances = k_nearest_neighbour(a, test_a, labels, k=5)
+# images_detected = images[neighbor_indices[4]]
 
 
-print("Predicted label:", predicted_label)
-print("Neighbor indices:", neighbor_indices)
-plot_nearest_neighbors(test_image, images, labels, neighbor_indices, predicted_label)
-cv2.imshow('Image Window', images_detected)
+# print("Predicted label:", predicted_label)
+# print("Neighbor indices:", neighbor_indices)
+# plot_nearest_neighbors(test_image, images, labels, neighbor_indices, predicted_label)
+# cv2.imshow('Image Window', images_detected)
 
 # Wait for a key press indefinitely or for a specific amount of time (in milliseconds)
-cv2.waitKey(0)
+# cv2.waitKey(0)
 
-# Close all OpenCV windows
-cv2.destroyAllWindows()
+# # Close all OpenCV windows
+# cv2.destroyAllWindows()
 
 
 
