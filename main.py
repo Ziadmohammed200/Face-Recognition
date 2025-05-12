@@ -110,7 +110,7 @@ def apply_knn_classification(window):
     eigen_values, eigenvectors = get_lambdas_and_eigenvectors(covariance_matrix, centered_data)
     
     # Get k eigenvectors based on threshold
-    k_eigenvectors = get_k_vectors(eigen_values, eigenvectors)
+    k,k_eigenvectors = get_k_vectors(eigen_values, eigenvectors)
     if len(window.test_image.shape) == 3:
         # It's a color image
         grayscale_image = cv2.cvtColor(window.test_image, cv2.COLOR_BGR2GRAY)
@@ -119,8 +119,8 @@ def apply_knn_classification(window):
         grayscale_image = window.test_image
 
     # Get coefficients for dataset and test image
-    a_coefficients_dataset = get_a_coefficients_dataset(k_eigenvectors, images_mean, images)
-    a_coefficients_image = get_a_coefficients_image(k_eigenvectors, images_mean, grayscale_image)
+    a_coefficients_dataset = get_a_coefficients_dataset(k_eigenvectors, images ,images_mean)
+    a_coefficients_image = get_a_coefficients_image(k_eigenvectors, grayscale_image, images_mean)
     predicted_label, neighbor_indices, distances = k_nearest_neighbour(a_coefficients_dataset, a_coefficients_image, labels, k_value)
     print(f"Predicted label: {predicted_label}")
     print(f"Neighbor indices: {neighbor_indices}")
