@@ -8,7 +8,7 @@ from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import Qt
 from eigen_face import generate_dataset, generate_covariance_matrix, get_lambdas_and_eigenvectors, get_k_vectors
 from eigen_face import get_a_coefficients_dataset, get_a_coefficients_image , k_nearest_neighbour
-
+import matplotlib.pyplot as plt
 
 def handle_dataset_selection(window):
     folder = QFileDialog.getExistingDirectory(window, "Select Dataset Folder")
@@ -57,6 +57,47 @@ def handle_test_image_selection(window):
         
         print(f"Test image loaded and displayed (Format: {'PGM' if file_path.lower().endswith('.pgm') else 'Color'})")
 
+def plot_nearest_neighbors(window, test_image, images, labels, neighbor_indices, predicted_label):
+    k = len(neighbor_indices)
+    fig, axes = plt.subplots(1, k + 1, figsize=(12, 3))
+
+    # Plot test image
+    axes[0].imshow(test_image, cmap='gray')
+    axes[0].set_title(f"Test Image\nPredicted: {predicted_label}")
+    axes[0].axis('off')
+
+    # Plot k nearest neighbors
+    for i, idx in enumerate(neighbor_indices):
+        axes[i + 1].imshow(images[idx], cmap='gray')
+        axes[i + 1].set_title(f"Neighbor {i + 1}\nLabel: {labels[idx]}")
+        axes[i + 1].axis('off')
+
+    # Tight layout for better spacing
+    plt.tight_layout()
+
+    # Convert Matplotlib plot to QImage
+    fig.canvas.draw()
+
+    # Convert the plot to an image
+    img_arr = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    img_arr = img_arr.reshape(fig.canvas.get_width_height()[::-1] + (3,))  # Convert to (height, width, 3)
+    
+    # Convert the image to QImage
+    h, w, ch = img_arr.shape
+    q_img = QImage(img_arr.data, w, h, w * ch, QImage.Format_RGB888)
+    
+    # Convert QImage to QPixmap
+    pixmap = QPixmap.fromImage(q_img)
+
+    # Display the pixmap in the widget
+    if not hasattr(window, "knn_image_label"):
+        window.knn_image_label = QLabel(window.knn_widget)
+        window.knn_image_label.setGeometry(10, 10, 800, 300)  # Adjust size to fit the plot
+    window.knn_image_label.setPixmap(pixmap.scaled(800, 300, Qt.KeepAspectRatio))
+
+    # Clean up the plot (close the figure)
+    plt.close(fig)
+
 def apply_knn_classification(window):
     k_value = window.k_spinbox.value()
     # Generate dataset
@@ -76,40 +117,14 @@ def apply_knn_classification(window):
     a_coefficients_dataset = get_a_coefficients_dataset(k_eigenvectors, images_mean, images)
     a_coefficients_image = get_a_coefficients_image(k_eigenvectors, images_mean, grayscale_image)
     predicted_label, neighbor_indices, distances = k_nearest_neighbour(a_coefficients_dataset, a_coefficients_image, labels, k_value)
-    images_detected = images[neighbor_indices[k_value-1]]
     print(f"Predicted label: {predicted_label}")
     print(f"Neighbor indices: {neighbor_indices}")
     print(f"Distances: {distances}")
-    # Display predicted label in the GUI
 
-    
-    # KNN classification logic (to be implemented)
+    # Display nearest neighbors plot in widget
+    plot_nearest_neighbors(window, window.test_image, images, labels, neighbor_indices, predicted_label)
+
     print("KNN classification applied.")
-
-
-    # Normalize and convert image to uint8
-    image = images_detected
-    if image is None or len(image.shape) != 2:
-        print("Error: Detected image is not 2D grayscale.")
-        return
-
-    if image.dtype != np.uint8:
-        image = (255 * (image - np.min(image)) / (np.max(image) - np.min(image))).astype(np.uint8)
-
-    # Convert NumPy image to QPixmap and show in QLabel
-    height, width = image.shape
-    q_image = QImage(image.data, width, height, width, QImage.Format_Grayscale8)
-    pixmap = QPixmap.fromImage(q_image)
-
-    # Display in QLabel inside knn_widget
-    if not hasattr(window, "knn_image_label"):
-        window.knn_image_label = QLabel(window.knn_widget)
-        window.knn_image_label.setGeometry(10, 10, 150, 150)
-
-    window.knn_image_label.setPixmap(pixmap.scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-
-
-
 
 if __name__ == "__main__":
     app = QApplication([])
