@@ -194,6 +194,28 @@ class ImageKNNClassifier(QMainWindow):
         )
         self.apply_button.setMinimumHeight(40)
         main_layout.addWidget(self.apply_button)
+        # ROC Curve button
+        self.roc_button = QPushButton("Show ROC Curve")
+        self.roc_button.setFont(QFont("Arial", 10))
+        self.roc_button.setStyleSheet(
+            """
+            QPushButton {
+                color: #ffffff;
+                font-weight: bold;
+                padding: 10px;
+                background-color: #e67e22;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #ca6f1e;
+            }
+            QPushButton:pressed {
+                background-color: #a04000;
+            }
+            """
+        )
+        self.roc_button.setMinimumHeight(40)
+        main_layout.addWidget(self.roc_button)
 
         # Create display area
         display_layout = QHBoxLayout()
@@ -236,10 +258,14 @@ class ImageKNNClassifier(QMainWindow):
         self.knn_grid = QGridLayout(self.knn_widget)
         self.knn_grid.setSpacing(15)
         self.knn_grid.setContentsMargins(20, 20, 20, 20)
+
         self.knn_scroll.setWidget(self.knn_widget)
         knn_layout.addWidget(self.knn_scroll)
         self.knn_images_result = QLabel("No neighbors displayed")
+        self.knn_images_result.setMinimumSize(350, 350)
         self.knn_images_result.setAlignment(Qt.AlignCenter)
+        self.knn_images_result.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
         self.knn_images_result.setFont(QFont("Segoe UI", 10))
         self.knn_images_result.setStyleSheet("color: #2c3e50; margin-top: 10px;")
         knn_layout.addWidget(self.knn_images_result)
@@ -337,6 +363,7 @@ def apply_dark_mode_style(app):
             background-color: #3498db;
         }
     """)
+
 
 
 if __name__ == "__main__":
