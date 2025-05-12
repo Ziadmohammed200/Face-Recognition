@@ -204,14 +204,15 @@ def apply_pca(faces):
     pca_faces = pca.fit_transform(faces)
     return pca, pca_faces
 
-def show_roc_curve(self):
+
+def show_roc_curve(dataset_path):
     # Validate dataset path
-    if not hasattr(self, 'dataset_path') or not self.dataset_path:
+    if not dataset_path:
         print("Error: No dataset selected!")
         return
 
     # Load the face dataset
-    faces, labels = load_faces_from_directory(self.dataset_path)
+    faces, labels = load_faces_from_directory(window.dataset_path)
 
     # Apply PCA to the faces for dimensionality reduction
     pca, pca_faces = apply_pca(faces)
@@ -237,11 +238,24 @@ def show_roc_curve(self):
     for i in range(binary_labels.shape[1]):
         fpr[i], tpr[i], thresholds[i] = roc_curve(binary_labels[:, i], predicted_probs[:, i])
 
-    # Create and show ROCGraphWindow for each class
-    for i in range(binary_labels.shape[1]):
-        # Initialize the ROC window and pass fpr and tpr for the current class
-        roc_window = ROCGraphWindow(fpr[i], tpr[i])
-        roc_window.show()
+    # Create subplots to show the ROC curves for each class
+    num_classes = binary_labels.shape[1]
+    fig, axs = plt.subplots(1, num_classes, figsize=(12, 6))
+
+    if num_classes == 1:
+        axs = [axs]  # Ensure axs is iterable if there's only one subplot
+
+    # Plot each ROC curve in its corresponding subplot
+    for i in range(num_classes):
+        axs[i].plot(fpr[i], tpr[i], color=(52/255, 152/255, 219/255), lw=3, label=f"ROC Curve {i+1}")
+        axs[i].plot([0, 1], [0, 1], color='gray', linestyle='--', lw=2, label="Random Classifier")
+        axs[i].set_title(f"ROC Curve {i+1}")
+        axs[i].set_xlabel("False Positive Rate")
+        axs[i].set_ylabel("True Positive Rate")
+        axs[i].legend(loc="lower right")
+
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":
