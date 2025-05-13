@@ -65,7 +65,7 @@ class ROCGraphWindow(QMainWindow):
         self.ax.set_xlabel('False Positive Rate')
         self.ax.set_ylabel('True Positive Rate')
         self.ax.set_title('Combined ROC Curves')
-        self.ax.legend(loc="lower right", bbox_to_anchor=(1.04, 0))
+        self.ax.legend(loc="lower right", bbox_to_anchor=(1.04, 0), prop={'size': 12})
         self.ax.grid(True)
         
         # Adjust layout
