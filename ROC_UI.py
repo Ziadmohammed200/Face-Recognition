@@ -1,64 +1,73 @@
-import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, QLabel
-from PyQt5.QtGui import QFont, QPalette, QColor
+from PyQt5.QtWidgets import (QMainWindow, QVBoxLayout, QWidget, QLabel, 
+                            QScrollArea, QHBoxLayout, QSizePolicy)
+from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
-import pyqtgraph as pg
-from sklearn.metrics import roc_curve
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.figure import Figure
 import numpy as np
-import cv2
-from sklearn.decomposition import PCA
-from sklearn.neighbors import KNeighborsClassifier
-import matplotlib.pyplot as plt
+from itertools import cycle
 
 class ROCGraphWindow(QMainWindow):
-    def __init__(self, fpr_list=None, tpr_list=None):
+    def __init__(self):
         super().__init__()
-        self.setWindowTitle("ROC Curve Viewer")
-        self.setGeometry(300, 150, 800, 600)
-
+        self.setWindowTitle("ROC Curve Viewer - Face Recognition")
+        self.setGeometry(300, 150, 1000, 700)
+        
         # Main widget and layout
         main_widget = QWidget()
-        layout = QVBoxLayout(main_widget)
+        self.layout = QVBoxLayout(main_widget)
         self.setCentralWidget(main_widget)
 
-        title = QLabel("Receiver Operating Characteristic (ROC) Curve")
+        # Title
+        title = QLabel("Face Recognition Performance - ROC Curves")
         title.setFont(QFont("Segoe UI", 14, QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title)
+        self.layout.addWidget(title)
 
-        # Create matplotlib subplot to plot multiple ROC curves
-        self.fig, self.axs = plt.subplots(1, len(fpr_list), figsize=(12, 6))
-        if len(fpr_list) == 1:  # Make axs iterable
-            self.axs = [self.axs]
+        # Create matplotlib figure
+        self.fig = Figure(figsize=(10, 6), dpi=100)
+        self.canvas = FigureCanvas(self.fig)
         
-        # Plot each ROC curve on the subplots
-        for i, (fpr, tpr) in enumerate(zip(fpr_list, tpr_list)):
-            self.axs[i].plot(fpr, tpr, color=(52/255, 152/255, 219/255), lw=3, label=f"ROC Curve {i+1}")
-            self.axs[i].plot([0, 1], [0, 1], color='gray', linestyle='--', lw=2, label="Random Classifier")
-            self.axs[i].set_title(f"ROC Curve {i+1}")
-            self.axs[i].set_xlabel("False Positive Rate")
-            self.axs[i].set_ylabel("True Positive Rate")
-            self.axs[i].legend(loc="lower right")
+        # Add navigation toolbar
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        
+        self.layout.addWidget(self.toolbar)
+        self.layout.addWidget(self.canvas)
+        
+        # Set size policy to make it expand
+        self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
+        # Initialize axes
+        self.ax = self.fig.add_subplot(111)
+        
+        # Store the window reference
+        self.setAttribute(Qt.WA_DeleteOnClose, False)
 
+    def plot_roc_curves(self, roc_curves, label_dict):
+        """Plot all ROC curves on a single graph"""
+        self.ax.clear()
+        
+        # Colors for different curves
+        colors = cycle(['b', 'g', 'r', 'c', 'm', 'y', 'k', 'orange', 'purple', 'brown'])
+        
+        # Plot each curve
+        for (class_label, color) in zip(roc_curves.keys(), colors):
+            curve_data = roc_curves[class_label]
+            label = f"{label_dict.get(class_label, class_label)} (AUC = {curve_data['auc']:.2f})"
+            self.ax.plot(curve_data['fpr'], curve_data['tpr'], 
+                        color=color, lw=2, label=label)
+        
+        # Plot random classifier line
+        self.ax.plot([0, 1], [0, 1], 'k--', lw=1)
+        
+        # Formatting
+        self.ax.set_xlabel('False Positive Rate')
+        self.ax.set_ylabel('True Positive Rate')
+        self.ax.set_title('Combined ROC Curves')
+        self.ax.legend(loc="lower right", bbox_to_anchor=(1.04, 0))
+        self.ax.grid(True)
+        
+        # Adjust layout
         self.fig.tight_layout()
-        self.show()
-
-    def plot_roc(self, fpr_list, tpr_list):
-        # Simply call the matplotlib plotting function when plotting all ROC curves
-        self.__init__(fpr_list, tpr_list)
-
-# Example usage
-def show_roc_curve(window):
-    # Dummy example: Generate multiple ROC curves for demonstration
-    # Normally, you would use your classifier and the actual fpr, tpr values here
-    fpr_list = [np.array([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])]
-    tpr_list = [np.array([0.0, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 1.0])]
-
-    # Additional ROC curve data for demonstration
-    fpr_list.append(np.array([0.0, 0.2, 0.4, 0.6, 0.8, 1.0]))
-    tpr_list.append(np.array([0.0, 0.1, 0.3, 0.6, 0.8, 1.0]))
-
-    # Create and display the ROC window with multiple curves
-    roc_window = ROCGraphWindow(fpr_list, tpr_list)
-    roc_window.show()
-
+        self.canvas.draw()

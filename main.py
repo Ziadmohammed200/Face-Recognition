@@ -19,6 +19,9 @@ from sklearn.preprocessing import LabelBinarizer
 from itertools import cycle
 from PyQt5.QtWidgets import QVBoxLayout, QWidget
 
+# Add this import at the top of your file
+from ROC_UI import ROCGraphWindow
+
 def handle_dataset_selection(window):
     folder = QFileDialog.getExistingDirectory(window, "Select Dataset Folder")
     if folder:
@@ -167,32 +170,28 @@ def load_faces_from_directory(dataset_path, target_size=(64, 64)):
     
     return np.array(faces), np.array(labels), label_dict
 
-def plot_roc_curves( roc_curves, label_dict):
-    """Plot ROC curves for multi-class classification.
+# Replace the plot_roc_curves function with this new version
+def plot_roc_curves(roc_curves, label_dict):
+    """Plot ROC curves for multi-class classification in PyQt window.
     
     Args:
         roc_curves (dict): Dictionary containing ROC curve data for each class
         label_dict (dict): Mapping from class labels to human-readable names
     """
-    plt.figure(figsize=(10, 8))
-    plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Random Guess')
+    # Prepare data for ROCGraphWindow
+    fpr_list = []
+    tpr_list = []
+    labels = []
     
-    # Plot each class's ROC curve
-    colors = cycle(['aqua', 'darkorange', 'cornflowerblue', 'green', 'red'])
-    for class_label, color in zip(roc_curves.keys(), colors):
-        fpr = roc_curves[class_label]['fpr']
-        tpr = roc_curves[class_label]['tpr']
-        auc_score = roc_curves[class_label]['auc']
-        plt.plot(fpr, tpr, color=color, 
-                label=f'{label_dict.get(class_label, class_label)} (AUC = {auc_score:.2f})')
-
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('ROC Curves for Face Recognition')
-    plt.legend(loc="lower right")
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+    # Collect all FPR/TPR pairs and their labels
+    for class_label in roc_curves.keys():
+        fpr_list.append(roc_curves[class_label]['fpr'])
+        tpr_list.append(roc_curves[class_label]['tpr'])
+        labels.append(f"{label_dict.get(class_label, class_label)} (AUC = {roc_curves[class_label]['auc']:.2f})")
+    
+    # Create and show the ROC window
+    roc_window = ROCGraphWindow(fpr_list, tpr_list, labels)
+    roc_window.show()
 
 def show_roc_curve(window):
     if not hasattr(window, 'dataset_path') or not window.dataset_path:
@@ -233,8 +232,11 @@ def show_roc_curve(window):
             roc_auc = auc(fpr, tpr)
             roc_curves[class_label] = {'fpr': fpr, 'tpr': tpr, 'auc': roc_auc}
         
-        # Plot the ROC curves
-        plot_roc_curves(roc_curves, label_dict)
+        # Create and show the ROC window
+        if not hasattr(window, 'roc_window') or not window.roc_window:
+            window.roc_window = ROCGraphWindow()  # Create once
+        window.roc_window.plot_roc_curves(roc_curves, label_dict)
+        window.roc_window.show()
         
     except Exception as e:
         print(f"Error generating ROC curve: {str(e)}")
